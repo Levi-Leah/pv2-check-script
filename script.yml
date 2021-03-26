@@ -1,0 +1,41 @@
+---
+- name: patcher
+  hosts: localhost
+  gather_facts: no
+#    localhost:
+#      vars:
+#        ansible_connection: local
+
+  tasks:
+
+# Find
+
+    - name: find .adoc files
+      find:
+        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/
+        pattern: "*.adoc"
+      register: adoc_files
+
+    - name: create a list
+      set_fact:
+        files_list: "{{ adoc_files.files | map(attribute='path') | list }}"
+
+# Adding the abstract tag
+    - name: match string and write abstract tag
+      lineinfile:
+        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
+        line: '[role="_abstract"]'
+        insertafter: "^= .*"
+        state: present
+
+    - name: remove an empty line after the abstract tag
+      lineinfile:
+        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
+        line: ""
+        insertbefore: "^[role="
+        state: absent
+
+    - name: add empty line after level 1 heading
+      shell: sed -i '/^= .*/{G;}' /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
+      args:
+        warn: false
