@@ -1,0 +1,41 @@
+---
+- name: patcher
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+
+    - include_vars: vars-dir.yml
+    - debug: var=directory_path
+
+    - include_vars: vars-adoc.yml
+    - debug: var=file_path
+
+# Find
+
+    - name: find .adoc files
+      find:
+        path: "{{ directory_path }}"
+        pattern: "{{ file_path }}"
+      register: adoc_files
+
+# Adding the abstract tag
+    - name: match string and write abstract tag
+      lineinfile:
+        path: "{{ item.path }}"
+        line: '[role="_abstract"]'
+        insertafter: "^= .*"
+        state: present
+      with_items: "{{ adoc_files.files }}"
+
+    - name: remove an empty line after the abstract tag
+      shell: awk -i inplace -v n=-2 'NR==n+1 && !NF{next} /\[role=/ {n=NR}1' {{ item.path }}
+      with_items: "{{ adoc_files.files }}"
+      args:
+        warn: false
+
+    - name: add empty line after level 1 heading
+      shell: sed -i '/^= .*/{G;}' {{ item.path }}
+      with_items: "{{ adoc_files.files }}"
+      args:
+        warn: false

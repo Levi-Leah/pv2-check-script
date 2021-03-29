@@ -1,4 +1,11 @@
 ---
 # ./vars/vars-adoc.yml
 
-directory_path: /home/levi/rhel-8-docs/enterprise/modules/dotnet
+#- include_vars: vars-dir.yml
+#- debug: var=directory_path
+
+#- name:
+#  file_path: "{{ directory_path }}/proc_creating-the-mvc-sample-app.adoc"
+file_path:
+  - proc_creating-the-mvc-sample-app.adoc
+  - proc_publishing-asp-dotnet-apps.adoc
