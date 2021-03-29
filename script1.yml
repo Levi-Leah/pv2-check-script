@@ -1,5 +1,5 @@
 ---
-- name: patcher
+- name: checker
   hosts: localhost
   gather_facts: no
 
