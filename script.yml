@@ -16,26 +16,27 @@
         pattern: "*.adoc"
       register: adoc_files
 
-    - name: create a list
-      set_fact:
-        files_list: "{{ adoc_files.files | map(attribute='path') | list }}"
+#    - name: create a list
+#      set_fact:
+#        files_list: "{{ adoc_files.files | map(attribute='path') | list }}"
 
 # Adding the abstract tag
     - name: match string and write abstract tag
       lineinfile:
-        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
+        path: "{{ item.path }}"
         line: '[role="_abstract"]'
         insertafter: "^= .*"
         state: present
+      with_items: "{{ adoc_files.files }}"
 
     - name: remove an empty line after the abstract tag
-      lineinfile:
-        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
-        line: ""
-        insertbefore: "^[role="
-        state: absent
+      shell: awk -i inplace -v n=-2 'NR==n+1 && !NF{next} /\[role=/ {n=NR}1' {{ item.path }}
+      with_items: "{{ adoc_files.files }}"
+      args:
+        warn: false
 
     - name: add empty line after level 1 heading
-      shell: sed -i '/^= .*/{G;}' /home/levi/rhel-8-docs/enterprise/modules/dotnet/proc_installing-image-streams-on-linux-and-macos.adoc
+      shell: sed -i '/^= .*/{G;}' {{ item.path }}
+      with_items: "{{ adoc_files.files }}"
       args:
         warn: false
