@@ -5,11 +5,14 @@
 
   tasks:
 
+    - include_vars: vars-adoc.yml
+    - debug: var=directory_path
+
 # Find
 
     - name: find .adoc files
       find:
-        path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/
+        path: "{{ directory_path }}"
         pattern: "*.adoc"
       register: adoc_files
 
