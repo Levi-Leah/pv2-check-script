@@ -2,9 +2,6 @@
 - name: patcher
   hosts: localhost
   gather_facts: no
-#    localhost:
-#      vars:
-#        ansible_connection: local
 
   tasks:
 
@@ -15,10 +12,6 @@
         path: /home/levi/rhel-8-docs/enterprise/modules/dotnet/
         pattern: "*.adoc"
       register: adoc_files
-
-#    - name: create a list
-#      set_fact:
-#        files_list: "{{ adoc_files.files | map(attribute='path') | list }}"
 
 # Adding the abstract tag
     - name: match string and write abstract tag
