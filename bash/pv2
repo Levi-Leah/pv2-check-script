@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# find current branch
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# find the changed files between master and current branch
+changed_files=$(git diff --name-only master..."$current_branch")
+
+# tags
+abstract='[role="_abstract"]'
+add_res='[role="_additional-resources"]'
+
+echo "$changed_files" | while read line; do grep -FHL "$abstract" "$line"; done
+
+file_with_add_res=$(echo "$changed_files" | while read line; do grep -FH "Additional resources" "$line"; done)
+
+echo "$changed_files" | while read line; do grep -FHL "$add_res" "$line"; done
