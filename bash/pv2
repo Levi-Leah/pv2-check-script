@@ -2,16 +2,63 @@
 
 # find current branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
-
 # find the changed files between master and current branch
-changed_files=$(git diff --name-only master..."$current_branch")
-
-# tags
+changed_files=$(git diff --name-only master..."$current_branch" -- '*.adoc')
+#
 abstract='[role="_abstract"]'
 add_res='[role="_additional-resources"]'
+string='////'
 
-echo "$changed_files" | while read line; do grep -FHL "$abstract" "$line"; done
+#######################################################################################
+# Checking abstract tags
+# record changed files that don't have abstract tag
 
-file_with_add_res=$(echo "$changed_files" | while read line; do grep -FH "Additional resources" "$line"; done)
+no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' "$abstract" "$line"; done )
 
-echo "$changed_files" | while read line; do grep -FHL "$add_res" "$line"; done
+# print a message regarding the abstract tags check
+if [ -z "$no_abstract_tag_files" ]; then
+    echo "$(tput setaf 2)$(tput bold)abstract tags are set $(tput sgr 0)"; else
+    echo "$(tput setaf 1)$(tput bold)no abstract tag in the following files: $(tput sgr 0)
+$no_abstract_tag_files"
+fi
+
+abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
+
+#######################################################################################
+# Checking additional resources tags
+# record changed files that have additional resources section
+add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
+
+no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done )
+
+# print a message regarding the additional resources tags check
+if [ -z "$no_add_res_tag_files" ]; then
+    echo "$(tput setaf 2)$(tput bold)additional resorces tags are set (or no files contain additional resources section) $(tput sgr 0)"; else
+    echo "$(tput setaf 1)$(tput bold)no additional resources tag in the following files: $(tput sgr 0)
+$no_add_res_tag_files"
+fi
+
+
+#######################################################################################
+# Checking vanilla xrefs
+# record changed files that have vanilla xrefs (scipping the comments)
+
+vanilla_xref_files=$(echo "$changed_files" | grep -vE "^//" "$line" | while read line; do grep -HlE '<<.*>>' "$line"; done )
+
+# print a message regarding vanilla xref check
+if [ -z "$vanilla_xref_files" ]; then
+    echo "$(tput setaf 2)$(tput bold)no vanilla xrefs found $(tput sgr 0)"; else
+    echo "$(tput setaf 1)$(tput bold)vanilla xrefs found in the following files: $(tput sgr 0)
+$vanilla_xref_files"
+fi
+
+# Checking in-line anchors
+# record changed files that have in-line anchors
+in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=.*\[\[.*\]\]" "$line"; done )
+
+# print a message regarding in-line anchors check
+if [ -z "$in_line_anchor_files" ]; then
+    echo "$(tput setaf 2)$(tput bold)no in-line anchors found $(tput sgr 0)"; else
+    echo "$(tput setaf 1)$(tput bold)in-line anchors found in the following files: $(tput sgr 0)
+$in_line_anchor_files"
+fi
