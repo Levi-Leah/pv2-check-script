@@ -7,7 +7,12 @@ changed_files=$(git diff --name-only master..."$current_branch" -- '*.adoc')
 #
 abstract='[role="_abstract"]'
 add_res='[role="_additional-resources"]'
-string='////'
+
+# enable tput colors; from J's script
+bold=$(tput bold)
+fail="$bold$(tput setaf 1)"
+pass="$bold$(tput setaf 2)"
+reset=$(tput sgr0)
 
 #######################################################################################
 # Checking abstract tags
@@ -17,9 +22,9 @@ no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --
 
 # print a message regarding the abstract tags check
 if [ -z "$no_abstract_tag_files" ]; then
-    echo "$(tput setaf 2)$(tput bold)abstract tags are set $(tput sgr 0)"; else
-    echo "$(tput setaf 1)$(tput bold)no abstract tag in the following files: $(tput sgr 0)
-$no_abstract_tag_files"
+    echo "${pass}abstract tags are set${reset}"
+else
+    echo -e "${fail}no abstract tag in the following files:${reset}\n$no_abstract_tag_files"
 fi
 
 abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
@@ -29,27 +34,24 @@ abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abs
 # record changed files that have additional resources section
 add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
 
-no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done )
+no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done );
 
-# print a message regarding the additional resources tags check
 if [ -z "$no_add_res_tag_files" ]; then
-    echo "$(tput setaf 2)$(tput bold)additional resorces tags are set (or no files contain additional resources section) $(tput sgr 0)"; else
-    echo "$(tput setaf 1)$(tput bold)no additional resources tag in the following files: $(tput sgr 0)
-$no_add_res_tag_files"
+    #statements
+    echo "${pass}additional resorces tags are set (or no files contain additional resources section)${reset}"
+else
+    echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
 fi
-
-
 #######################################################################################
 # Checking vanilla xrefs
 # record changed files that have vanilla xrefs (scipping the comments)
-
-vanilla_xref_files=$(echo "$changed_files" | grep -vE "^//" "$line" | while read line; do grep -HlE '<<.*>>' "$line"; done )
+vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
 
 # print a message regarding vanilla xref check
 if [ -z "$vanilla_xref_files" ]; then
-    echo "$(tput setaf 2)$(tput bold)no vanilla xrefs found $(tput sgr 0)"; else
-    echo "$(tput setaf 1)$(tput bold)vanilla xrefs found in the following files: $(tput sgr 0)
-$vanilla_xref_files"
+    echo "${pass}no vanilla xrefs found${reset}"
+else
+    echo -e "${fail}vanilla xrefs found in the following files:${reset}\n$vanilla_xref_files"
 fi
 
 # Checking in-line anchors
@@ -58,7 +60,35 @@ in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=
 
 # print a message regarding in-line anchors check
 if [ -z "$in_line_anchor_files" ]; then
-    echo "$(tput setaf 2)$(tput bold)no in-line anchors found $(tput sgr 0)"; else
-    echo "$(tput setaf 1)$(tput bold)in-line anchors found in the following files: $(tput sgr 0)
-$in_line_anchor_files"
+    echo "${pass}no in-line anchors found${reset}"
+else
+    echo -e "${fail}in-line anchors found in the following files:${reset}\n$in_line_anchor_files"
 fi
+
+# Checking human readable label for xrefs
+# record changed files that have xrefs without human readable label
+xref_files_without_label=$(echo "$changed_files" | while read line; do grep -HlE "xref:.*\[\]" "$line"; done )
+
+# print a message regarding in-line anchors check
+if [ -z "$xref_files_without_label" ]; then
+    echo "${pass}human readable labels are set (or no files contain xrefs)${reset}"
+else
+    echo -e "${fail}human readable lebels are missing in the following files:${reset}\n$xref_files_without_label"
+fi
+
+# Checking unsupported includes
+# record changed files that have unsupported includes
+unsopported_includes_files=$(echo "$changed_files" | while read line; do grep -HlE ":leveloffset:" "$line"; done )
+
+# print a message regarding files with unsupported includes
+if [ -z "$unsopported_includes_files" ]; then
+    echo "${pass}supported includes are used (or no files contain includes)${reset}"
+else
+    echo -e "${fail}unsupported includes found in the following files:${reset}\n$unsopported_includes_files"
+fi
+
+# Checking nesting
+# record changed files that have nesting
+assembly_files=$(echo "$changed_files" | xargs grep "assembly_*")
+
+echo "$assembly_files"
