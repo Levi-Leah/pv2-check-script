@@ -3,7 +3,7 @@
 # find current branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 # find the changed files between master and current branch
-changed_files=$(git diff --name-only master..."$current_branch" -- '*.adoc')
+changed_files=$(git diff --diff-filter=ACM --name-only master..."$current_branch" -- '*.adoc')
 #
 abstract='[role="_abstract"]'
 add_res='[role="_additional-resources"]'
@@ -17,7 +17,6 @@ reset=$(tput sgr0)
 #######################################################################################
 # Checking abstract tags
 # record changed files that don't have abstract tag
-
 no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' "$abstract" "$line"; done )
 
 # print a message regarding the abstract tags check
@@ -76,19 +75,47 @@ else
     echo -e "${fail}human readable lebels are missing in the following files:${reset}\n$xref_files_without_label"
 fi
 
-# Checking unsupported includes
-# record changed files that have unsupported includes
-unsopported_includes_files=$(echo "$changed_files" | while read line; do grep -HlE ":leveloffset:" "$line"; done )
+# Checking nesting in assemblies
+# record changed files that are assemblies
+assembly_files=$(echo "$changed_files" | grep "assembly_")
 
-# print a message regarding files with unsupported includes
-if [ -z "$unsopported_includes_files" ]; then
-    echo "${pass}supported includes are used (or no files contain includes)${reset}"
-else
-    echo -e "${fail}unsupported includes found in the following files:${reset}\n$unsopported_includes_files"
+# print a message if no assembly files were changed
+if [[ -z "$assembly_files" ]]; then
+   echo "${pass}no assembly files were changed${reset}"
 fi
 
-# Checking nesting
-# record changed files that have nesting
-assembly_files=$(echo "$changed_files" | xargs grep "assembly_*")
+# print a message if assembly files were changed
+if ! [[ -z "$assembly_files" ]]; then
+    # record assemblies that contain other assemblies
+    nesting_in_assemblies=$(echo "$assembly_files" | while read line; do grep -HlE "^include::assembly_*" "$line"; done )
 
-echo "$assembly_files"
+    # print a message regarding nesting in assemblies
+    if [ -z "$nesting_in_assemblies" ]; then
+        echo "${pass}assemblies do not contain nested assemblies${reset}"
+    else
+        echo -e "${fail}nested assemblies found in the following assemblies:${reset}\n$nesting_in_assemblies"
+    fi
+    # record assemblies that contain unsopported includes
+    unsopported_includes_files=$(echo "$assembly_files" | while read line; do grep -HlE ":leveloffset:" "$line"; done )
+    if [ -z "$unsopported_includes_files" ]; then
+
+        # print a message regarding includes in assemblies
+        echo "${pass}supported includes are used in assemblies${reset}"
+    else
+        echo -e "${fail}unsupported includes found in the following files:${reset}\n$unsopported_includes_files"
+    fi
+fi
+
+# Checking nesting in modules
+# record changed modules that have nested modules
+module_files=$(echo "$changed_files" | grep "\/modules\/")
+
+nesting_in_modules=$(echo "$module_files" | while read line; do grep -HlE "^include::*" "$line" | grep -Ev "^include::common-content\/"; done )
+
+
+# print a message regarding nested assemblies
+if [ -z "$nesting_in_modules" ]; then
+    echo "${pass}modules do not contain nested modules${reset}"
+else
+    echo -e "${fail}nested modules found in the following modules:${reset}\n$nesting_in_modules"
+fi
