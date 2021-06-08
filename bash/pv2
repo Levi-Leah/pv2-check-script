@@ -19,34 +19,50 @@ reset=$(tput sgr0)
 # record changed files that don't have abstract tag
 no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' "$abstract" "$line"; done )
 
-# print a message regarding the abstract tags check
+# print a message regarding the abstract tag status
 if [ -z "$no_abstract_tag_files" ]; then
     echo "${pass}abstract tags are set${reset}"
 else
     echo -e "${fail}no abstract tag in the following files:${reset}\n$no_abstract_tag_files"
 fi
 
-abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
+#remove
+#abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
 
 #######################################################################################
 # Checking additional resources tags
 # record changed files that have additional resources section
-add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
+add_res_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "Additional resources" && echo "%%"')
 
-no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done );
+# old that works
+#add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
 
-if [ -z "$no_add_res_tag_files" ]; then
-    #statements
-    echo "${pass}additional resorces tags are set (or no files contain additional resources section)${reset}"
-else
-    echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
+# print a message if no files have additional resources section
+if [[ -z "$add_res_files" ]]; then
+   echo "${pass}no files contain additional resources section${reset}"
 fi
+
+# print a message if files have additional resources section
+if ! [[ -z "$add_res_files" ]]; then
+    # record changed files that have no additional resources tag
+    no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done );
+    if [ -z "$no_add_res_tag_files" ]; then
+        # print a message regarding additional resources tag status
+        echo "${pass}additional resorces tags are set${reset}"
+    else
+        echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
+    fi
+fi
+
 #######################################################################################
 # Checking vanilla xrefs
 # record changed files that have vanilla xrefs (scipping the comments)
-vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
+vanilla_xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "<<.*>>" && echo "%%"')
 
-# print a message regarding vanilla xref check
+#old that works
+#vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
+
+# print a message regarding vanilla xref status
 if [ -z "$vanilla_xref_files" ]; then
     echo "${pass}no vanilla xrefs found${reset}"
 else
@@ -55,24 +71,37 @@ fi
 
 # Checking in-line anchors
 # record changed files that have in-line anchors
-in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=.*\[\[.*\]\]" "$line"; done )
+in_line_anchor_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "^=.*\[\[.*\]\]" && echo "%%"')
 
-# print a message regarding in-line anchors check
+# old that works
+#in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=.*\[\[.*\]\]" "$line"; done )
+
+# print a message regarding in-line anchors status
 if [ -z "$in_line_anchor_files" ]; then
     echo "${pass}no in-line anchors found${reset}"
 else
     echo -e "${fail}in-line anchors found in the following files:${reset}\n$in_line_anchor_files"
 fi
 
-# Checking human readable label for xrefs
+# Checking human readable regular xrefs
 # record changed files that have xrefs without human readable label
-xref_files_without_label=$(echo "$changed_files" | while read line; do grep -HlE "xref:.*\[\]" "$line"; done )
+xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "xref:.*" && echo "%%"')
 
-# print a message regarding in-line anchors check
-if [ -z "$xref_files_without_label" ]; then
-    echo "${pass}human readable labels are set (or no files contain xrefs)${reset}"
-else
-    echo -e "${fail}human readable lebels are missing in the following files:${reset}\n$xref_files_without_label"
+# old that works
+#xref_files=$(echo "$changed_files" | while read line; do grep -HlE "xref:.*" "$line"; done )
+
+if [[ -z "$xref_files" ]]; then
+    echo "${pass}no files contain xrefs${reset}"
+fi
+
+if ! [[ -z "$xref_files" ]]; then
+    xref_files_without_label=$(echo "$xref_files" | while read line; do grep -HlE "xref:.*\[\]" "$line"; done )
+    # print a message regarding in-line anchors check
+    if [ -z "$xref_files_without_label" ]; then
+        echo "${pass}human readable labels are set${reset}"
+    else
+        echo -e "${fail}human readable lebels are missing in the following files:${reset}\n$xref_files_without_label"
+    fi
 fi
 
 # Checking nesting in assemblies
@@ -107,15 +136,22 @@ if ! [[ -z "$assembly_files" ]]; then
 fi
 
 # Checking nesting in modules
-# record changed modules that have nested modules
+# record changed files that are modules
 module_files=$(echo "$changed_files" | grep "\/modules\/")
 
-nesting_in_modules=$(echo "$module_files" | while read line; do grep -HlE "^include::*" "$line" | grep -Ev "^include::common-content\/"; done )
+# if no module files are changes
+if [[ -z "$module_files" ]]; then
+    echo "${pass}no module files were changed${reset}"
+fi
 
-
-# print a message regarding nested assemblies
-if [ -z "$nesting_in_modules" ]; then
-    echo "${pass}modules do not contain nested modules${reset}"
-else
-    echo -e "${fail}nested modules found in the following modules:${reset}\n$nesting_in_modules"
+# if module files are changed
+if ! [[ -z "$assembly_files" ]]; then
+    # record changed modules that have nested modules
+    nesting_in_modules=$(echo "$module_files" | while read line; do grep -HlE "^include::*" "$line" | grep -Ev "^include::common-content\/"; done )
+    # print a message regarding nesting in modules
+    if [ -z "$nesting_in_modules" ]; then
+        echo "${pass}modules do not contain nested modules${reset}"
+    else
+        echo -e "${fail}nested modules found in the following files:${reset}\n$nesting_in_modules"
+    fi
 fi
