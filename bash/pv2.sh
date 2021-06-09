@@ -1,18 +1,29 @@
 #!/bin/bash
 
+#######################################################################################
+# this section is for working on the merge request
 # find current branch
-current_branch=$(git rev-parse --abbrev-ref HEAD)
+#current_branch=$(git rev-parse --abbrev-ref HEAD)
+
 # find the changed files between master and current branch
-changed_files=$(git diff --diff-filter=ACM --name-only master..."$current_branch" -- '*.adoc')
-#
+#changed_files=$(git diff --diff-filter=ACM --name-only master..."$current_branch" -- '*.adoc')
+#######################################################################################
 abstract='[role="_abstract"]'
 add_res='[role="_additional-resources"]'
+exp=':experimental:'
 
 # enable tput colors; from J's script
 bold=$(tput bold)
 fail="$bold$(tput setaf 1)"
 pass="$bold$(tput setaf 2)"
 reset=$(tput sgr0)
+
+# record all files in the pantheon2.yml file
+# rhel-8/common-content/attributes.adoc is excluded
+all_yml_files=$(grep -v 'rhel-8/common-content/attributes.adoc' pantheon2.yml | grep -o "rhel-.\/.*.adoc")
+
+# record all files that exist in path
+changed_files=$(for i in $(echo "$all_yml_files"); do find "$i"; done)
 
 #######################################################################################
 # Checking abstract tags
@@ -69,6 +80,7 @@ else
     echo -e "${fail}vanilla xrefs found in the following files:${reset}\n$vanilla_xref_files"
 fi
 
+#######################################################################################
 # Checking in-line anchors
 # record changed files that have in-line anchors
 in_line_anchor_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "^=.*\[\[.*\]\]" && echo "%%"')
@@ -83,6 +95,7 @@ else
     echo -e "${fail}in-line anchors found in the following files:${reset}\n$in_line_anchor_files"
 fi
 
+#######################################################################################
 # Checking human readable regular xrefs
 # record changed files that have xrefs without human readable label
 xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "xref:.*" && echo "%%"')
@@ -100,10 +113,11 @@ if ! [[ -z "$xref_files" ]]; then
     if [ -z "$xref_files_without_label" ]; then
         echo "${pass}human readable labels are set${reset}"
     else
-        echo -e "${fail}human readable lebels are missing in the following files:${reset}\n$xref_files_without_label"
+        echo -e "${fail}human readable labels are missing in the following files:${reset}\n$xref_files_without_label"
     fi
 fi
 
+#######################################################################################
 # Checking nesting in assemblies
 # record changed files that are assemblies
 assembly_files=$(echo "$changed_files" | grep "assembly_")
@@ -125,7 +139,8 @@ if ! [[ -z "$assembly_files" ]]; then
         echo -e "${fail}nested assemblies found in the following assemblies:${reset}\n$nesting_in_assemblies"
     fi
     # record assemblies that contain unsopported includes
-    unsopported_includes_files=$(echo "$assembly_files" | while read line; do grep -HlE ":leveloffset:" "$line"; done )
+    unsopported_includes_files=$(echo "$assembly_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q ":leveloffset:" && echo "%%"')
+    #while read line; do grep -HlE ":leveloffset:" "$line"; done )
     if [ -z "$unsopported_includes_files" ]; then
 
         # print a message regarding includes in assemblies
@@ -135,6 +150,7 @@ if ! [[ -z "$assembly_files" ]]; then
     fi
 fi
 
+#######################################################################################
 # Checking nesting in modules
 # record changed files that are modules
 module_files=$(echo "$changed_files" | grep "\/modules\/")
@@ -145,13 +161,60 @@ if [[ -z "$module_files" ]]; then
 fi
 
 # if module files are changed
-if ! [[ -z "$assembly_files" ]]; then
+if ! [[ -z "$module_files" ]]; then
     # record changed modules that have nested modules
-    nesting_in_modules=$(echo "$module_files" | while read line; do grep -HlE "^include::*" "$line" | grep -Ev "^include::common-content\/"; done )
+    # comments and anything with common-content dir in path is excluded
+    nesting_in_modules=$(echo "$module_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^include::common-content|d" | grep -q "^include::*" && echo "%%"')
     # print a message regarding nesting in modules
     if [ -z "$nesting_in_modules" ]; then
         echo "${pass}modules do not contain nested modules${reset}"
     else
         echo -e "${fail}nested modules found in the following files:${reset}\n$nesting_in_modules"
     fi
+fi
+
+#######################################################################################
+# Checking UI Macros
+# record changed files that have UI Macros
+ui_macros_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q -e "btn:\[.*\]" -e "menu:.*\[.*\]" -e "kbd:\[.*\]" && echo "%%"')
+
+# print a message if no files have UI Macros
+if [[ -z "$ui_macros_files" ]]; then
+   echo "${pass}no files contain UI Macros${reset}"
+fi
+
+# print a message if files have UI macros
+if ! [[ -z "$ui_macros_files" ]]; then
+    # record changed files that have no experimental tag
+    no_experimental_tag_files=$(echo "$ui_macros_files" | while read line; do grep -FHL "$exp" "$line"; done );
+    if [ -z "$no_experimental_tag_files" ]; then
+        # print a message regarding experimental tag status
+        echo "${pass}experimental tags is set${reset}"
+    else
+        echo -e "${fail}experimental tag in not set in the following files:${reset}\n$no_experimental_tag_files"
+    fi
+fi
+
+#######################################################################################
+# Checking HTML markup
+# record changed files that have HTML markup
+html_markup_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^\.\.\.\.|,\|^\.\.\.\.|d" | sed -re "\|^----|,\|^----|d" | grep -q "<.*>.*<\/.*>" && echo "%%"')
+
+# print a message regarding HTML markup status
+if [[ -z "$html_markup_files" ]]; then
+   echo "${pass}no files contain HTML markup${reset}"
+else
+    echo -e "${fail}HTML markup is found in the following files:${reset}\n$html_markup_files"
+fi
+
+#######################################################################################
+# Checking variables in titles
+# record changed files that have variables in titles
+variables_in_titles=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|\{context\}|d" | grep -q "^=.*{.*}" && echo "%%"')
+
+# print a message regarding variables in titles status
+if [[ -z "$variables_in_titles" ]]; then
+   echo "${pass}no files have variables in titles${reset}"
+else
+    echo -e "${fail}the following files have variable in the titles:${reset}\n$variables_in_titles"
 fi
