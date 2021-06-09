@@ -23,7 +23,9 @@ reset=$(tput sgr0)
 all_yml_files=$(grep -v 'rhel-8/common-content/attributes.adoc' pantheon2.yml | grep -o "rhel-.\/.*.adoc")
 
 # record all files that exist in path
-changed_files=$(for i in $(echo "$all_yml_files"); do find "$i"; done)
+#old that works
+#changed_files=$(for i in $(echo "$all_yml_files"); do find "$i"; done )
+changed_files=$(echo "$all_yml_files" | xargs -I %% bash -c '[[ -e %% ]] && echo "%%" || echo "${fail}file does not exist in path:${reset} %%" >&2')
 
 #######################################################################################
 # Checking abstract tags
@@ -63,6 +65,43 @@ if ! [[ -z "$add_res_files" ]]; then
     else
         echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
     fi
+fi
+
+#######################################################################################
+# Checking empty lines after the abstract tag
+# record changed files that have an empty line after the abstract tag
+empty_line_after_abstract=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role\=\"\_abstract\"\]\n$/p;D" %% | grep -q "\[role=\"_abstract\"\]" && echo "%%"')
+
+# print a message regarding the empty line after the abstract status
+if [[ -z "$empty_line_after_abstract" ]]; then
+    echo "${pass}no files contain an empty line after the abstract tag${reset}"
+else
+    echo -e "${fail}the following files have an empty line after the abstract tag:${reset}\n$empty_line_after_abstract"
+fi
+
+#######################################################################################
+# Checking empty lines after the additional resources tag
+# record changed files that have an empty line after the additional resources tag
+empty_line_after_add_res=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role=\"_additional-resources\"\]\n$/p;D" %% | grep -q "\[role=\"_additional-resources\"\]" && echo "%%"')
+
+# print a message regarding the empty line after the abstract status
+if [[ -z "$empty_line_after_add_res" ]]; then
+    echo "${pass}no files contain an empty line after the additional resources tag${reset}"
+else
+    echo -e "${fail}the following files have an empty line after the additional resources tag:${reset}\n$empty_line_after_add_res"
+fi
+
+
+#######################################################################################
+# Checking empty lines between additional resources header and the first bullet point
+# record changed files that have an empty line between additional resources header and the first bullet point
+empty_line_after_add_res_header=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/.*Additional resources\n$/p;D" %% | grep -q ".*Additional resources" && echo "%%"')
+
+# print a message regarding the empty line after the abstract status
+if [[ -z "$empty_line_after_add_res_header" ]]; then
+    echo "${pass}no files contain an empty line after the additional resources tag${reset}"
+else
+    echo -e "${fail}the following files have an empty line after the additional resources tag:${reset}\n$empty_line_after_add_res_header"
 fi
 
 #######################################################################################
