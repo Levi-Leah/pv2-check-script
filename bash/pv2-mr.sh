@@ -97,7 +97,7 @@ fi
 #######################################################################################
 # Checking vanilla xrefs
 # record changed files that have vanilla xrefs (scipping the comments)
-vanilla_xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "<<.*>>" && echo "%%"')
+vanilla_xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|<<.* .*>>|d" | grep -q "<<.*>>" && echo "%%"')
 
 #old that works
 #vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
