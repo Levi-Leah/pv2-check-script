@@ -127,7 +127,7 @@ fi
 #######################################################################################
 # Checking human readable regular xrefs
 # record changed files that have xrefs without human readable label
-xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "xref:.*" && echo "%%"')
+xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|p;D" %% | sed -re "\|^//.*$|p;D" | grep -q "xref:.*" && echo "%%"')
 
 # old that works
 #xref_files=$(echo "$changed_files" | while read line; do grep -HlE "xref:.*" "$line"; done )
