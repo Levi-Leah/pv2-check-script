@@ -127,23 +127,15 @@ fi
 #######################################################################################
 # Checking human readable regular xrefs
 # record changed files that have xrefs without human readable label
-xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "xref:.*" && echo "%%"')
+no_human_read_tag_xrefs=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*|d" | grep -q "xref:.*\[\]" && echo "%%"')
 
-# old that works
-#xref_files=$(echo "$changed_files" | while read line; do grep -HlE "xref:.*" "$line"; done )
+# record changed files that have links without human readable label
+no_human_read_tag_links=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*|d" | grep -q "http.*\[\]" && echo "%%"')
 
-if [[ -z "$xref_files" ]]; then
-    echo "${pass}no files contain xrefs${reset}"
-fi
-
-if ! [[ -z "$xref_files" ]]; then
-    xref_files_without_label=$(echo "$xref_files" | while read line; do grep -HlE "xref:.*\[\]" "$line"; done )
-    # print a message regarding in-line anchors check
-    if [ -z "$xref_files_without_label" ]; then
-        echo "${pass}human readable labels are set${reset}"
-    else
-        echo -e "${fail}human readable labels are missing in the following files:${reset}\n$xref_files_without_label"
-    fi
+if [ -z "$no_human_read_tag_xrefs" ] || [ -z "$no_human_read_tag_links" ]; then
+    echo "human readable labels are set"
+else
+    echo -e "${fail}human readable labels are missing in the following files:${reset}\nin xrefs: $no_human_read_tag_xrefs\nin links: $no_human_read_tag_links"
 fi
 
 #######################################################################################
