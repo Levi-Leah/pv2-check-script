@@ -255,3 +255,10 @@ if [[ -z "$variables_in_titles" ]]; then
 else
     echo -e "${fail}the following files have variable in the titles:${reset}\n$variables_in_titles"
 fi
+
+#######################################################################################
+# Checking plain text in additional resources section
+# record files that have plain text in additional resources section
+plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
+
+echo "$plain_text_check"
