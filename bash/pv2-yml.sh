@@ -17,16 +17,52 @@ bold=$(tput bold)
 fail="$bold$(tput setaf 1)FAIL: "
 pass="$bold$(tput setaf 2)PASS: "
 warn="$bold$(tput setaf 3)WARNING: "
+ex="$bold$(tput smul)"
 reset=$(tput sgr0)
+reset_ex=$(tput rmul)
 
-# record all files in the pantheon2.yml file
-# rhel-8/common-content/attributes.adoc is excluded
-all_yml_files=$(grep -v 'rhel-8/common-content/attributes.adoc' pantheon2.yml | grep -o "rhel-.\/.*.adoc")
+#ask for user input
+echo -e "${bold}enter the file name that contains paths to the files you want to check ${ex}(e.g. pantheon2.yml)${reset_ex}.
+> if your file is not in the ${ex}rhel-8-docs${reset_ex} directory, provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}${reset}."
+
+#record user input
+read input_file
+
+# test if the file provided by the user exists
+if test -f "$input_file"; then
+    echo "${pass}checking the contents of the $input_file file...${reset}"
+else
+    echo "${fail}$input_file does not exist
+    > provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}${reset}"
+    exit
+fi
+
+# determine if the files are in enterprise or in rhel-* directory
+old_vs_new=$(cat "$input_file" | grep -o "enterprise\/.*.adoc")
+
+# if files are not in enterprise directory grep all the .*.adoc files
+if [ -z "$old_vs_new" ]; then
+    # rhel-*/common-content/attributes.adoc is excluded
+    all_files=$(grep -v 'rhel-*/common-content/attributes.adoc' $input_file | grep -o "rhel-.\/.*.adoc")
+fi
+
+# if files are in enterprise directory grep all the .*.adoc files
+if ! [ -z "$old_vs_new" ]; then
+    # enterprise/meta/attributes.adoc is excluded
+    all_files=$(grep -v 'meta/attributes.adoc' $input_file | grep -o "enterprise\/.*.adoc")
+fi
+
+# check if any file paths suitable for the check were recorded
+if [ -z "$all_files" ]; then
+    echo "${fail}$input_file does not contain file paths suitable for the check
+    > enter the file name that contains paths to the files you want to check ${ex}(e.g. pantheon2.yml)${reset_ex}${reset}"
+    exit
+fi
 
 # record all files that exist in path
 #old that works
-#changed_files=$(for i in $(echo "$all_yml_files"); do find "$i"; done )
-changed_files=$(echo "$all_yml_files" | xargs -I %% bash -c '[[ -e %% ]] && echo "%%" || echo "${fail}file does not exist in path:${reset} %%" >&2')
+#changed_files=$(for i in $(echo "$all_files"); do find "$i"; done )
+changed_files=$(echo "$all_files" | xargs -I %% bash -c '[[ -e %% ]] && echo "%%" || echo "file does not exist in path: %%" >&2')
 
 #######################################################################################
 # Checking abstract tags
@@ -144,13 +180,13 @@ no_human_read_tag_xrefs=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "
 no_human_read_tag_links=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*|d" | grep -q "http.*\[\]" && echo "%%"')
 
 if [ -z "$no_human_read_tag_xrefs" ]; then
-    echo "human readable labels are set in xrefs"
+    echo "${pass}human readable labels are set in xrefs${reset}"
 else
     echo -e "${fail}human readable labels for xrefs are missing in the following files:${reset}\n$no_human_read_tag_xrefs"
 fi
 
 if [ -z "$no_human_read_tag_links" ]; then
-    echo "human readable labels are set in links"
+    echo "${pass}human readable labels are set in links${reset}"
 else
     echo -e "${fail}human readable labels for links are missing in the following files:${reset}\n$no_human_read_tag_links"
 fi
@@ -270,7 +306,7 @@ else
 fi
 
 
-# this flags all text before a link and report file names
+# this flags all text before a link and reports file names
 #files_with_plain_text_before_link=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed "0,/Additional resources$/d" | sed -re "\|^\*\slink|d" | sed -re "s|^\*\s||g" | grep -qoP "(?<=^).*?(?=link)" && echo "%%"')
 
 #echo "some files:\n$files_with_plain_text_before_link"
@@ -284,3 +320,5 @@ if [[ -z "$plain_text_check_xr" ]]; then
 else
     echo -e "${warn}the following files may contain too much plain text in additional resources section before xrefs:${reset}\n$plain_text_check_xr"
 fi
+
+exit
