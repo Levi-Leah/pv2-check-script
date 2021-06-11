@@ -259,14 +259,14 @@ fi
 
 #######################################################################################
 # Checking plain text in additional resources section
-# record files that have plain text in additional resources section
+# record files that have plain text in additional resources section after links
 plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check" ]]; then
    echo "${pass}no plain text in additional resources section{reset}"
 else
-    echo -e "${warn}the following files may contain too much plain text in additional resources section:${reset}\n$plain_text_check"
+    echo -e "${warn}the following files may contain too much plain text in additional resources section before links:${reset}\n$plain_text_check"
 fi
 
 
@@ -274,3 +274,13 @@ fi
 #files_with_plain_text_before_link=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed "0,/Additional resources$/d" | sed -re "\|^\*\slink|d" | sed -re "s|^\*\s||g" | grep -qoP "(?<=^).*?(?=link)" && echo "%%"')
 
 #echo "some files:\n$files_with_plain_text_before_link"
+
+# record files that have plain text in additional resources section after xrefs
+plain_text_check_xr=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*xref" && echo "%%"')
+
+# print a message regarding plain text in additional resources section
+if [[ -z "$plain_text_check_xr" ]]; then
+   echo "${pass}no plain text in additional resources section{reset}"
+else
+    echo -e "${warn}the following files may contain too much plain text in additional resources section before xrefs:${reset}\n$plain_text_check_xr"
+fi
