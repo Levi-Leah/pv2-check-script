@@ -1,13 +1,6 @@
  #!/bin/bash
 
-#######################################################################################
-# this section is for working on the merge request
-# find current branch
-#current_branch=$(git rev-parse --abbrev-ref HEAD)
-
-# find the changed files between master and current branch
-#changed_files=$(git diff --diff-filter=ACM --name-only master..."$current_branch" -- '*.adoc')
-#######################################################################################
+# defining the basics
 abstract='[role="_abstract"]'
 add_res='[role="_additional-resources"]'
 exp=':experimental:'
@@ -33,20 +26,21 @@ if test -f "$input_file"; then
     echo "${pass}checking the contents of the $input_file file...${reset}"
 else
     echo "${fail}$input_file does not exist
-    > provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}${reset}"
+    > provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}
+    > do not start the path with ~ tilda sign${reset}"
     exit
 fi
 
 # determine if the files are in enterprise or in rhel-* directory
 old_vs_new=$(cat "$input_file" | grep -o "enterprise\/.*.adoc")
 
-# if files are not in enterprise directory grep all the .*.adoc files
+# if files are not in enterprise directory grep all the rhel-*/.*.adoc files
 if [ -z "$old_vs_new" ]; then
     # rhel-*/common-content/attributes.adoc is excluded
     all_files=$(grep -v 'rhel-*/common-content/attributes.adoc' $input_file | grep -o "rhel-.\/.*.adoc")
 fi
 
-# if files are in enterprise directory grep all the .*.adoc files
+# if files are in enterprise directory grep all the enterprise/.*.adoc files
 if ! [ -z "$old_vs_new" ]; then
     # enterprise/meta/attributes.adoc is excluded
     all_files=$(grep -v 'meta/attributes.adoc' $input_file | grep -o "enterprise\/.*.adoc")
@@ -60,7 +54,7 @@ if [ -z "$all_files" ]; then
 fi
 
 # record all files that exist in path
-#old that works
+#legacy command
 #changed_files=$(for i in $(echo "$all_files"); do find "$i"; done )
 changed_files=$(echo "$all_files" | xargs -I %% bash -c '[[ -e %% ]] && echo "%%" || echo "file does not exist in path: %%" >&2')
 
@@ -76,7 +70,7 @@ else
     echo -e "${fail}no abstract tag in the following files:${reset}\n$no_abstract_tag_files"
 fi
 
-#remove
+#legacy command
 #abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
 
 #######################################################################################
@@ -84,7 +78,7 @@ fi
 # record changed files that have additional resources section
 add_res_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "Additional resources" && echo "%%"')
 
-# old that works
+# legacy command
 #add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
 
 # print a message if no files have additional resources section
@@ -146,7 +140,7 @@ fi
 # record changed files that have vanilla xrefs (scipping the comments)
 vanilla_xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|<<.* .*>>|d" | grep -q "<<.*>>" && echo "%%"')
 
-#old that works
+#legacy command
 #vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
 
 # print a message regarding vanilla xref status
@@ -161,7 +155,7 @@ fi
 # record changed files that have in-line anchors
 in_line_anchor_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "^=.*\[\[.*\]\]" && echo "%%"')
 
-# old that works
+# legacy command
 #in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=.*\[\[.*\]\]" "$line"; done )
 
 # print a message regarding in-line anchors status
