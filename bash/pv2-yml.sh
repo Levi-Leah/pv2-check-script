@@ -264,7 +264,7 @@ plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check" ]]; then
-   echo "${pass}no plain text in additional resources section{reset}"
+   echo "${pass}no plain text in additional resources section${reset}"
 else
     echo -e "${warn}the following files may contain too much plain text in additional resources section before links:${reset}\n$plain_text_check"
 fi
@@ -280,7 +280,7 @@ plain_text_check_xr=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^/
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check_xr" ]]; then
-   echo "${pass}no plain text in additional resources section{reset}"
+   echo "${pass}no plain text in additional resources section${reset}"
 else
     echo -e "${warn}the following files may contain too much plain text in additional resources section before xrefs:${reset}\n$plain_text_check_xr"
 fi

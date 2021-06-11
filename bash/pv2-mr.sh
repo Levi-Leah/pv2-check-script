@@ -13,24 +13,10 @@ exp=':experimental:'
 
 # enable tput colors; from J's script
 bold=$(tput bold)
-fail="$bold$(tput setaf 1)"
-pass="$bold$(tput setaf 2)"
+fail="$bold$(tput setaf 1)FAIL: "
+pass="$bold$(tput setaf 2)PASS: "
+warn="$bold$(tput setaf 3)WARNING: "
 reset=$(tput sgr0)
-
-#######################################################################################
-# Checking abstract tags
-# record changed files that don't have abstract tag
-no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' "$abstract" "$line"; done )
-
-# print a message regarding the abstract tag status
-if [ -z "$no_abstract_tag_files" ]; then
-    echo "${pass}abstract tags are set${reset}"
-else
-    echo -e "${fail}no abstract tag in the following files:${reset}\n$no_abstract_tag_files"
-fi
-
-#remove
-#abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
 
 #######################################################################################
 # Checking abstract tags
@@ -263,14 +249,14 @@ fi
 
 #######################################################################################
 # Checking plain text in additional resources section
-# record files that have plain text in additional resources section
+# record files that have plain text in additional resources section after links
 plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check" ]]; then
-   echo "${pass}no plain text in additional resources section{reset}"
+   echo "${pass}no plain text in additional resources section${reset}"
 else
-    echo -e "${warn}the following files may contain too much plain text in additional resources section:${reset}\n$plain_text_check"
+    echo -e "${warn}the following files may contain too much plain text in additional resources section before links:${reset}\n$plain_text_check"
 fi
 
 
@@ -284,7 +270,7 @@ plain_text_check_xr=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^/
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check_xr" ]]; then
-   echo "${pass}no plain text in additional resources section{reset}"
+   echo "${pass}no plain text in additional resources section${reset}"
 else
     echo -e "${warn}the following files may contain too much plain text in additional resources section before xrefs:${reset}\n$plain_text_check_xr"
 fi
