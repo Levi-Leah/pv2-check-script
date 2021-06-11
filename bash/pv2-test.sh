@@ -97,11 +97,11 @@ fi
 # record changed files that have an empty line between additional resources header and the first bullet point
 empty_line_after_add_res_header=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/.*Additional resources\n$/p;D" %% | grep -q ".*Additional resources" && echo "%%"')
 
-# print a message regarding the empty line after the abstract status
+# print a message regarding the empty line after the additional resources geader status
 if [[ -z "$empty_line_after_add_res_header" ]]; then
-    echo "${pass}no files contain an empty line after the additional resources tag${reset}"
+    echo "${pass}no files contain an empty line after the additional resources header${reset}"
 else
-    echo -e "${fail}the following files have an empty line after the additional resources tag:${reset}\n$empty_line_after_add_res_header"
+    echo -e "${fail}the following files have an empty line after the additional resources header:${reset}\n$empty_line_after_add_res_header"
 fi
 
 #######################################################################################
@@ -255,3 +255,21 @@ if [[ -z "$variables_in_titles" ]]; then
 else
     echo -e "${fail}the following files have variable in the titles:${reset}\n$variables_in_titles"
 fi
+
+#######################################################################################
+# Checking plain text in additional resources section
+# record files that have plain text in additional resources section
+plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
+
+# print a message regarding plain text in additional resources section
+if [[ -z "$plain_text_check" ]]; then
+   echo "${pass}no plain text in additional resources section{reset}"
+else
+    echo -e "${warn}the following files may contain too much plain text in additional resources section:${reset}\n$plain_text_check"
+fi
+
+
+# this flags all text before a link and report file names
+#files_with_plain_text_before_link=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed "0,/Additional resources$/d" | sed -re "\|^\*\slink|d" | sed -re "s|^\*\s||g" | grep -qoP "(?<=^).*?(?=link)" && echo "%%"')
+
+#echo "some files:\n$files_with_plain_text_before_link"
