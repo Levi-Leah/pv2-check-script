@@ -23,7 +23,7 @@ read input_file
 
 # test if the file provided by the user exists
 if test -f "$input_file"; then
-    echo "${pass}checking the contents of the $input_file file...${reset}"
+    echo "${pass}$input_file file exists. checking the contents of the $input_file file...${reset}"
 else
     echo "${fail}$input_file does not exist
     > provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}
@@ -31,8 +31,15 @@ else
     exit
 fi
 
-# determine if the files are in enterprise or in rhel-* directory
-old_vs_new=$(cat "$input_file" | grep -o "enterprise\/.*.adoc")
+
+#number_of_files=$(echo "$input_file" | wc -l)
+
+#if [ "$input_file" -ef $(echo "$input_file") ]; then
+#    mypath="$input_file"
+#    proc_pattern=".*proc_.*.adoc"
+#    [[ $mypath == $proc_pattern ]] && echo "Matches!" || echo "Doesn't match!"
+#    exit
+#fi
 
 # if files are not in enterprise directory grep all the rhel-*/.*.adoc files
 if [ -z "$old_vs_new" ]; then
@@ -92,7 +99,7 @@ if ! [[ -z "$add_res_files" ]]; then
     no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done );
     if [ -z "$no_add_res_tag_files" ]; then
         # print a message regarding additional resources tag status
-        echo "${pass}additional resorces tags are set${reset}"
+        echo "${pass}additional resources tags are set${reset}"
     else
         echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
     fi
