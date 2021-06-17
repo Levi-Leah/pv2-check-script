@@ -23,7 +23,7 @@ read input_file
 
 # test if the file provided by the user exists
 if test -f "$input_file"; then
-    echo "${pass}checking the contents of the $input_file file...${reset}"
+    echo "${pass}$input_file file exists. checking the contents of the $input_file file...${reset}"
 else
     echo "${fail}$input_file does not exist
     > provide the absolute path ${ex}(e.g. /home/user/some-file)${reset_ex}
@@ -92,7 +92,7 @@ if ! [[ -z "$add_res_files" ]]; then
     no_add_res_tag_files=$(echo "$add_res_files" | while read line; do grep -FHL "$add_res" "$line"; done );
     if [ -z "$no_add_res_tag_files" ]; then
         # print a message regarding additional resources tag status
-        echo "${pass}additional resorces tags are set${reset}"
+        echo "${pass}additional resources tags are set${reset}"
     else
         echo -e "${fail}no additional resources tag in the following files:${reset}\n$no_add_res_tag_files"
     fi
@@ -113,7 +113,7 @@ fi
 #######################################################################################
 # Checking empty lines after the additional resources tag
 # record changed files that have an empty line after the additional resources tag
-empty_line_after_add_res=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role=\"_additional-resources\"\]\n$/p;D" %% | grep -q "\[role=\"_additional-resources\"\]" && echo "%%"')
+empty_line_after_add_res=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role=\"_additional-resources\"\]\n$/p;D" %% | grep -q "\[role=\"_additional-resources\"\]" && echo "%%"')
 
 # print a message regarding the empty line after the abstract status
 if [[ -z "$empty_line_after_add_res" ]]; then
@@ -126,7 +126,7 @@ fi
 #######################################################################################
 # Checking empty lines between additional resources header and the first bullet point
 # record changed files that have an empty line between additional resources header and the first bullet point
-empty_line_after_add_res_header=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/.*Additional resources\n$/p;D" %% | grep -q ".*Additional resources" && echo "%%"')
+empty_line_after_add_res_header=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed "\$!N;/.*Additional resources\n$/p;D" | grep -q ".*Additional resources" && echo "%%"')
 
 # print a message regarding the empty line after the additional resources geader status
 if [[ -z "$empty_line_after_add_res_header" ]]; then
