@@ -21,7 +21,7 @@ reset=$(tput sgr0)
 #######################################################################################
 # Checking abstract tags
 # record changed files that don't have abstract tag
-no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' "$abstract" "$line"; done )
+no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' --exclude='attributes.adoc' "$abstract" "$line"; done )
 
 # print a message regarding the abstract tag status
 if [ -z "$no_abstract_tag_files" ]; then
