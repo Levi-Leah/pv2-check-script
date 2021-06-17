@@ -314,5 +314,3 @@ if [[ -z "$plain_text_check_xr" ]]; then
 else
     echo -e "${warn}the following files may contain too much plain text in additional resources section before xrefs:${reset}\n$plain_text_check_xr"
 fi
-
-exit
