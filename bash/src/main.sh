@@ -1,9 +1,25 @@
 #!/bin/bash
 
 #######################################################################################
+# Getting rid of the comments
+function erase_comments {
+    filenames="$1"
+    sed -re "\|^////|,\|^////|d" "$1" | sed -re "\|^//.*$|d"
+}
+
+export -f erase_comments
+
+#######################################################################################
 # Checking abstract tags
 # record changed files that don't have abstract tag
-no_abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHL --exclude='master.adoc' --exclude='attributes.adoc' "$abstract" "$line"; done )
+function grep_no_abstract_tag {
+    filenames="$1"
+    echo -e "$1" | while read line; do grep -FHL --exclude='master.adoc' --exclude='attributes.adoc' "$abstract" "$line"; done
+}
+
+export -f grep_no_abstract_tag
+
+no_abstract_tag_files=$(grep_no_abstract_tag "$changed_files")
 
 # print a message regarding the abstract tag status
 if [ -z "$no_abstract_tag_files" ]; then
@@ -12,13 +28,10 @@ else
     echo -e "${fail}no abstract tag in the following files:${reset}\n$no_abstract_tag_files"
 fi
 
-#legacy command
-#abstract_tag_files=$(echo "$changed_files" | while read line; do grep -FHl "$abstract" "$line"; done )
-
 #######################################################################################
 # Checking additional resources tags
 # record changed files that have additional resources section
-add_res_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "Additional resources" && echo "%%"')
+add_res_files=$(echo -e "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q "Additional resources" && echo "%%"')
 
 # legacy command
 #add_res_files=$(echo "$changed_files" | while read line; do grep -FHl "Additional resources" "$line"; done )
@@ -43,7 +56,7 @@ fi
 #######################################################################################
 # Checking empty lines after the abstract tag
 # record changed files that have an empty line after the abstract tag
-empty_line_after_abstract=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role\=\"\_abstract\"\]\n$/p;D" %% | grep -q "\[role=\"_abstract\"\]" && echo "%%"')
+empty_line_after_abstract=$(echo "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\$!N;/^\[role\=\"\_abstract\"\]\n$/p;D" | grep -q "\[role=\"_abstract\"\]" && echo "%%"')
 
 # print a message regarding the empty line after the abstract status
 if [[ -z "$empty_line_after_abstract" ]]; then
@@ -55,7 +68,7 @@ fi
 #######################################################################################
 # Checking empty lines after the additional resources tag
 # record changed files that have an empty line after the additional resources tag
-empty_line_after_add_res=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\$!N;/^\[role=\"_additional-resources\"\]\n$/p;D" %% | grep -q "\[role=\"_additional-resources\"\]" && echo "%%"')
+empty_line_after_add_res=$(echo -e "$add_res_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\$!N;/^\[role=\"_additional-resources\"\]\n$/p;D" | grep -q "\[role=\"_additional-resources\"\]" && echo "%%"')
 
 # print a message regarding the empty line after the abstract status
 if [[ -z "$empty_line_after_add_res" ]]; then
@@ -68,7 +81,7 @@ fi
 #######################################################################################
 # Checking empty lines between additional resources header and the first bullet point
 # record changed files that have an empty line between additional resources header and the first bullet point
-empty_line_after_add_res_header=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed "\$!N;/.*Additional resources\n$/p;D" | grep -q ".*Additional resources" && echo "%%"')
+empty_line_after_add_res_header=$(echo -e "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed "\$!N;/.*Additional resources\n$/p;D" | grep -q ".*Additional resources" && echo "%%"')
 
 # print a message regarding the empty line after the additional resources geader status
 if [[ -z "$empty_line_after_add_res_header" ]]; then
@@ -80,10 +93,14 @@ fi
 #######################################################################################
 # Checking vanilla xrefs
 # record changed files that have vanilla xrefs (scipping the comments)
-vanilla_xref_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|<<.* .*>>|d" | grep -q "<<.*>>" && echo "%%"')
+function grep_xrefs {
+    filenames="$1"
+    echo -e "$1" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|<<.* .*>>|d" | grep -q "<<.*>>" && echo "%%"'
+}
 
-#legacy command
-#vanilla_xref_files=$(echo "$changed_files" | while read line; do grep -HlE '<<.*>>' "$line"; done )
+export -f grep_xrefs
+
+vanilla_xref_files=$(grep_xrefs "$changed_files")
 
 # print a message regarding vanilla xref status
 if [ -z "$vanilla_xref_files" ]; then
@@ -95,7 +112,7 @@ fi
 #######################################################################################
 # Checking in-line anchors
 # record changed files that have in-line anchors
-in_line_anchor_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q "^=.*\[\[.*\]\]" && echo "%%"')
+in_line_anchor_files=$(echo "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q "^=.*\[\[.*\]\]" && echo "%%"')
 
 # legacy command
 #in_line_anchor_files=$(echo "$changed_files" | while read line; do grep -HlE "^=.*\[\[.*\]\]" "$line"; done )
@@ -110,10 +127,10 @@ fi
 #######################################################################################
 # Checking human readable regular xrefs
 # record changed files that have xrefs without human readable label
-no_human_read_tag_xrefs=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*|d" | grep -q "xref:.*\[\]" && echo "%%"')
+no_human_read_tag_xrefs=$(echo "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q "xref:.*\[\]" && echo "%%"')
 
 # record changed files that have links without human readable label
-no_human_read_tag_links=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*|d" | grep -q "http.*\[\]" && echo "%%"')
+no_human_read_tag_links=$(echo "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q "http.*\[\]" && echo "%%"')
 
 if [ -z "$no_human_read_tag_xrefs" ]; then
     echo "${pass}human readable labels are set in xrefs${reset}"
@@ -149,7 +166,7 @@ if ! [[ -z "$assembly_files" ]]; then
         echo -e "${fail}nested assemblies found in the following assemblies:${reset}\n$nesting_in_assemblies"
     fi
     # record assemblies that contain unsopported includes
-    unsopported_includes_files=$(echo "$assembly_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q ":leveloffset:" && echo "%%"')
+    unsopported_includes_files=$(echo "$assembly_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q ":leveloffset:" && echo "%%"')
     #while read line; do grep -HlE ":leveloffset:" "$line"; done )
     if [ -z "$unsopported_includes_files" ]; then
 
@@ -174,7 +191,7 @@ fi
 if ! [[ -z "$module_files" ]]; then
     # record changed modules that have nested modules
     # comments and anything with common-content dir in path is excluded
-    nesting_in_modules=$(echo "$module_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^include::common-content|d" | grep -q "^include::*" && echo "%%"')
+    nesting_in_modules=$(echo -e "$module_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|^include::common-content|d" | grep -q "^include::*" && echo "%%"')
     # print a message regarding nesting in modules
     if [ -z "$nesting_in_modules" ]; then
         echo "${pass}modules do not contain nested modules${reset}"
@@ -186,7 +203,7 @@ fi
 #######################################################################################
 # Checking UI Macros
 # record changed files that have UI Macros
-ui_macros_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | grep -q -e "btn:\[.*\]" -e "menu:.*\[.*\]" -e "kbd:\[.*\]" && echo "%%"')
+ui_macros_files=$(echo -e "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | grep -q -e "btn:\[.*\]" -e "menu:.*\[.*\]" -e "kbd:\[.*\]" && echo "%%"')
 
 # print a message if no files have UI Macros
 if [[ -z "$ui_macros_files" ]]; then
@@ -208,7 +225,7 @@ fi
 #######################################################################################
 # Checking HTML markup
 # record changed files that have HTML markup
-html_markup_files=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^\.\.\.\.|,\|^\.\.\.\.|d" | sed -re "\|^----|,\|^----|d" | grep -q "<.*>.*<\/.*>" && echo "%%"')
+html_markup_files=$(echo -e "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|^\.\.\.\.|,\|^\.\.\.\.|d" | sed -re "\|^----|,\|^----|d" | grep -q "<.*>.*<\/.*>" && echo "%%"')
 
 # print a message regarding HTML markup status
 if [[ -z "$html_markup_files" ]]; then
@@ -220,7 +237,7 @@ fi
 #######################################################################################
 # Checking variables in titles
 # record changed files that have variables in titles
-variables_in_titles=$(echo "$changed_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|\{context\}|d" | grep -q "^=.*{.*}" && echo "%%"')
+variables_in_titles=$(echo -e "$changed_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|\{context\}|d" | grep -q "^=.*{.*}" && echo "%%"')
 
 # print a message regarding variables in titles status
 if [[ -z "$variables_in_titles" ]]; then
@@ -232,7 +249,7 @@ fi
 #######################################################################################
 # Checking plain text in additional resources section
 # record files that have plain text in additional resources section after links
-plain_text_check=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
+plain_text_check=$(echo -e "$add_res_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*link" && echo "%%"')
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check" ]]; then
@@ -243,12 +260,12 @@ fi
 
 
 # this flags all text before a link and reports file names
-#files_with_plain_text_before_link=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed "0,/Additional resources$/d" | sed -re "\|^\*\slink|d" | sed -re "s|^\*\s||g" | grep -qoP "(?<=^).*?(?=link)" && echo "%%"')
+#files_with_plain_text_before_link=$(echo -e "$add_res_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed "0,/Additional resources$/d" | sed -re "\|^\*\slink|d" | sed -re "s|^\*\s||g" | grep -qoP "(?<=^).*?(?=link)" && echo "%%"')
 
 #echo "some files:\n$files_with_plain_text_before_link"
 
 # record files that have plain text in additional resources section after xrefs
-plain_text_check_xr=$(echo "$add_res_files" | xargs -I %% bash -c 'sed -re "\|^////|,\|^////|d" %% | sed -re "\|^//.*$|d" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*xref" && echo "%%"')
+plain_text_check_xr=$(echo -e "$add_res_files" | xargs -P 0 -I %% bash -c 'erase_comments "%%" | sed -re "\|^ifdef.*|d" | sed -re "\|^ifndef.*|d" | sed -re "\|^endif.*|d" | sed -re "\|^$|d" | sed -n "H; /.*Additional resources/h; \${g;p;}" | grep -q "^\*........*xref" && echo "%%"')
 
 # print a message regarding plain text in additional resources section
 if [[ -z "$plain_text_check_xr" ]]; then
